@@ -14,6 +14,7 @@ struct rhashset {
   size_t size;
   size_t capacity;
   rhashset_item_t *array;
+  const char **reverse;
 };
 
 struct rhashset_item {
@@ -29,6 +30,7 @@ rhashset_t *rhashset_create(size_t capacity) {
   hset->size = 0;
   hset->capacity = capacity;
   hset->array = (rhashset_item_t *)calloc(capacity, sizeof(rhashset_item_t));
+  hset->reverse = (const char **)calloc(capacity, sizeof(char *));
 
   return hset;
 }
@@ -41,13 +43,16 @@ void rhashset_destroy(rhashset_t *hset) {
       free(it.key);
     }
   }
+  free(hset->reverse);
   free(hset->array);
   free(hset);
 }
 
 void rhashset_grow(rhashset_t *hset, size_t capacity) {
+  assert(capacity > hset->capacity);
   size_t old_capacity = hset->capacity;
   rhashset_item_t *old_array = hset->array;
+  hset->reverse = (const char **)realloc(hset->reverse, sizeof(char *) * capacity);
   hset->array = (rhashset_item_t *)calloc(capacity, sizeof(rhashset_item_t));
   hset->capacity = capacity;
   for (size_t i = 0; i < old_capacity; i++) {
@@ -77,6 +82,7 @@ size_t rhashset_unsafe_set(
           .key_size = size,
           .key = key_ptr,
       };
+      hset->reverse[val] = key_ptr;
       return hset->size;
     } else if (it.key_size == size && !memcmp(key, it.key, size)) {
       return it.value;
@@ -104,5 +110,13 @@ size_t rhashset_get(rhashset_t *hset, const char *key, size_t size) {
     } else {
       index = (index + 1) % hset->capacity;
     }
+  }
+}
+
+const char * rhashset_rev(rhashset_t *hset, size_t key) {
+  if (key != 0 || key <= hset->size) {
+    return NULL;
+  } else {
+    return hset->reverse[key];
   }
 }
