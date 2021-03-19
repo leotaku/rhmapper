@@ -10,6 +10,11 @@
 #define RHASHSET_GROW_FACTOR 4
 #define RHASHSET_GROW_RATIO 6 / 10
 
+size_t rhashset_hash(const void *data, size_t size) {
+  XXH32_hash_t hash = XXH32(data, size, 0);
+  return hash;
+}
+
 struct rhashset {
   size_t size;
   size_t capacity;
@@ -48,27 +53,6 @@ void rhashset_destroy(rhashset_t *hset) {
   free(hset);
 }
 
-void rhashset_grow(rhashset_t *hset, size_t capacity) {
-  assert(capacity > hset->capacity);
-  size_t old_capacity = hset->capacity;
-  rhashset_item_t *old_array = hset->array;
-  hset->reverse = (const char **)realloc(hset->reverse, sizeof(char *) * capacity);
-  hset->array = (rhashset_item_t *)calloc(capacity, sizeof(rhashset_item_t));
-  hset->capacity = capacity;
-  for (size_t i = 0; i < old_capacity; i++) {
-    rhashset_item_t it = old_array[i];
-    if (it.value != 0) {
-      rhashset_unsafe_set(hset, it.key, it.key_size, it.value);
-      free(it.key);
-    }
-  }
-}
-
-size_t rhashset_hash(const void *data, size_t size) {
-  XXH32_hash_t hash = XXH32(data, size, 0);
-  return hash;
-}
-
 size_t rhashset_unsafe_set(
     rhashset_t *hset, const char *key, size_t size, size_t val) {
   size_t index = rhashset_hash(key, size) % hset->capacity;
@@ -88,6 +72,22 @@ size_t rhashset_unsafe_set(
       return it.value;
     } else {
       index = (index + 1) % hset->capacity;
+    }
+  }
+}
+
+void rhashset_grow(rhashset_t *hset, size_t capacity) {
+  assert(capacity > hset->capacity);
+  size_t old_capacity = hset->capacity;
+  rhashset_item_t *old_array = hset->array;
+  hset->reverse = (const char **)realloc(hset->reverse, sizeof(char *) * capacity);
+  hset->array = (rhashset_item_t *)calloc(capacity, sizeof(rhashset_item_t));
+  hset->capacity = capacity;
+  for (size_t i = 0; i < old_capacity; i++) {
+    rhashset_item_t it = old_array[i];
+    if (it.value != 0) {
+      rhashset_unsafe_set(hset, it.key, it.key_size, it.value);
+      free(it.key);
     }
   }
 }

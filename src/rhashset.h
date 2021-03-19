@@ -10,6 +10,5 @@ void rhashset_grow(rhashset_t *hmap, size_t capacity);
 
 size_t rhashset_put(rhashset_t *hmap, const char *key, size_t size);
 size_t rhashset_get(rhashset_t *hmap, const char *key, size_t size);
-size_t rhashset_unsafe_set(rhashset_t *hmap, const char *key, size_t size, size_t value);
 
 #endif
