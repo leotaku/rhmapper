@@ -53,7 +53,7 @@ void rhashset_destroy(rhashset_t *hset) {
   free(hset);
 }
 
-size_t rhashset_unsafe_set(
+size_t rhashset_internal_set(
     rhashset_t *hset, const char *key, size_t size, size_t val) {
   size_t index = rhashset_hash(key, size) % hset->capacity;
   for (;;) {
@@ -86,7 +86,7 @@ void rhashset_grow(rhashset_t *hset, size_t capacity) {
   for (size_t i = 0; i < old_capacity; i++) {
     rhashset_item_t it = old_array[i];
     if (it.value != 0) {
-      rhashset_unsafe_set(hset, it.key, it.key_size, it.value);
+      rhashset_internal_set(hset, it.key, it.key_size, it.value);
       free(it.key);
     }
   }
@@ -96,7 +96,7 @@ size_t rhashset_put(rhashset_t *hset, const char *key, size_t size) {
   if (hset->size > hset->capacity * RHASHSET_GROW_RATIO) {
     rhashset_grow(hset, hset->capacity * RHASHSET_GROW_FACTOR);
   }
-  return rhashset_unsafe_set(hset, key, size, hset->size++);
+  return rhashset_internal_set(hset, key, size, hset->size++);
 }
 
 size_t rhashset_get(rhashset_t *hset, const char *key, size_t size) {
