@@ -114,7 +114,7 @@ size_t rhashset_get(rhashset_t *hset, const char *key, size_t size) {
   }
 }
 
-const char * rhashset_rev(rhashset_t *hset, size_t key) {
+const char *rhashset_rev(rhashset_t *hset, size_t key) {
   if (key == RHASHSET_EMPTY_VALUE || key >= hset->size) {
     return NULL;
   } else {
