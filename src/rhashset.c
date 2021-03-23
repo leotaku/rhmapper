@@ -16,6 +16,9 @@ size_t rhashset_hash(const void *data, size_t size) {
   return hash;
 }
 
+typedef struct rhashset rhashset_t;
+typedef struct rhashset_item rhashset_item_t;
+
 struct rhashset {
   size_t size;
   size_t capacity;
