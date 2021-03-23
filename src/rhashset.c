@@ -7,6 +7,7 @@
 #include "xxhash.h"
 #include "rhashset.h"
 
+#define RHASHSET_NO_KEY -1
 #define RHASHSET_GROW_FACTOR 4
 #define RHASHSET_GROW_RATIO 6 / 10
 
@@ -44,7 +45,7 @@ void rhashset_destroy(rhashset_t *hset) {
   const size_t size = hset->capacity;
   for (size_t i = 0; i < size; i++) {
     rhashset_item_t it = hset->array[i];
-    if (it.value != 0) {
+    if (it.key != NULL) {
       free(it.key);
     }
   }
@@ -58,9 +59,9 @@ size_t rhashset_internal_set(
   size_t index = rhashset_hash(key, size) % hset->capacity;
   for (;;) {
     rhashset_item_t it = hset->array[index];
-    if (it.value == 0) {
       char *key_ptr = (char *)calloc(size, sizeof(char));
       memcpy(key_ptr, key, size);
+    if (it.key == NULL) {
       hset->array[index] = (rhashset_item_t){
           .value = val,
           .key_size = size,
@@ -85,7 +86,7 @@ void rhashset_grow(rhashset_t *hset, size_t capacity) {
   hset->capacity = capacity;
   for (size_t i = 0; i < old_capacity; i++) {
     rhashset_item_t it = old_array[i];
-    if (it.value != 0) {
+    if (it.key != NULL) {
       rhashset_internal_set(hset, it.key, it.key_size, it.value);
       free(it.key);
     }
@@ -103,8 +104,8 @@ size_t rhashset_get(rhashset_t *hset, const char *key, size_t size) {
   size_t index = rhashset_hash(key, size) % hset->capacity;
   for (;;) {
     rhashset_item_t it = hset->array[index];
-    if (it.value == 0) {
-      return 0;
+    if (it.key == NULL) {
+      return RHASHSET_NO_KEY;
     } else if (it.key_size == size && !memcmp(key, it.key, size)) {
       return it.value;
     } else {
@@ -114,7 +115,7 @@ size_t rhashset_get(rhashset_t *hset, const char *key, size_t size) {
 }
 
 const char * rhashset_rev(rhashset_t *hset, size_t key) {
-  if (key != 0 || key <= hset->size) {
+  if (key == RHASHSET_NO_KEY || key >= hset->size) {
     return NULL;
   } else {
     return hset->reverse[key];
