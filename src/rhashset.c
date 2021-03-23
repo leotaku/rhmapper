@@ -68,7 +68,7 @@ size_t rhashset_internal_set(
           .key = key_ptr,
       };
       hset->reverse[val] = key_ptr;
-      return hset->size;
+      return val;
     } else if (it.key_size == size && !memcmp(key, it.key, size)) {
       return it.value;
     } else {
