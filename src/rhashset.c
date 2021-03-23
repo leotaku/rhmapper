@@ -7,9 +7,9 @@
 #include "xxhash.h"
 #include "rhashset.h"
 
-#define RHASHSET_NO_KEY -1
 #define RHASHSET_GROW_FACTOR 4
 #define RHASHSET_GROW_RATIO 6 / 10
+#define RHASHSET_EMPTY_VALUE -1
 
 size_t rhashset_hash(const void *data, size_t size) {
   XXH32_hash_t hash = XXH32(data, size, 0);
@@ -105,7 +105,7 @@ size_t rhashset_get(rhashset_t *hset, const char *key, size_t size) {
   for (;;) {
     rhashset_item_t it = hset->array[index];
     if (it.key == NULL) {
-      return RHASHSET_NO_KEY;
+      return RHASHSET_EMPTY_VALUE;
     } else if (it.key_size == size && !memcmp(key, it.key, size)) {
       return it.value;
     } else {
@@ -115,7 +115,7 @@ size_t rhashset_get(rhashset_t *hset, const char *key, size_t size) {
 }
 
 const char * rhashset_rev(rhashset_t *hset, size_t key) {
-  if (key == RHASHSET_NO_KEY || key >= hset->size) {
+  if (key == RHASHSET_EMPTY_VALUE || key >= hset->size) {
     return NULL;
   } else {
     return hset->reverse[key];
