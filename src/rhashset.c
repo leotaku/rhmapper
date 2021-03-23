@@ -34,6 +34,7 @@ struct rhashset_item {
 
 rhashset_t *rhashset_create(size_t capacity) {
   assert(capacity >= 1);
+
   rhashset_t *hset;
   hset = calloc(1, sizeof(rhashset_t));
   hset->size = 0;
