@@ -1,3 +1,6 @@
+#ifndef _RHASHSET_H_
+#define _RHASHSET_H_
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,7 +8,6 @@
 
 #define XXH_INLINE_ALL
 #include "xxhash.h"
-#include "rhashset.h"
 
 #define RHASHSET_GROW_FACTOR 4
 #define RHASHSET_GROW_RATIO 6 / 10
@@ -125,3 +127,5 @@ const char *rhashset_rev(rhashset_t *hset, size_t key) {
     return hset->reverse[key];
   }
 }
+
+#endif
