@@ -32,11 +32,11 @@ struct rhashset_item {
 rhashset_t *rhashset_create(size_t capacity) {
   assert(capacity >= 1);
   rhashset_t *hset;
-  hset = (rhashset_t *)calloc(1, sizeof(rhashset_t));
+  hset = calloc(1, sizeof(rhashset_t));
   hset->size = 0;
   hset->capacity = capacity;
-  hset->array = (rhashset_item_t *)calloc(capacity, sizeof(rhashset_item_t));
-  hset->reverse = (const char **)calloc(capacity, sizeof(char *));
+  hset->array = calloc(capacity, sizeof(rhashset_item_t));
+  hset->reverse = calloc(capacity, sizeof(char *));
 
   return hset;
 }
@@ -59,9 +59,9 @@ size_t rhashset_internal_set(
   size_t index = rhashset_hash(key, size) % hset->capacity;
   for (;;) {
     rhashset_item_t it = hset->array[index];
-      char *key_ptr = (char *)calloc(size, sizeof(char));
-      memcpy(key_ptr, key, size);
     if (it.key == NULL) {
+      char *key_ptr = calloc(size, sizeof(char));
+      memcpy(key_ptr, key, size);
       hset->array[index] = (rhashset_item_t){
           .value = val,
           .key_size = size,
@@ -81,8 +81,8 @@ void rhashset_grow(rhashset_t *hset, size_t capacity) {
   assert(capacity > hset->capacity);
   size_t old_capacity = hset->capacity;
   rhashset_item_t *old_array = hset->array;
-  hset->reverse = (const char **)realloc(hset->reverse, sizeof(char *) * capacity);
-  hset->array = (rhashset_item_t *)calloc(capacity, sizeof(rhashset_item_t));
+  hset->reverse = realloc(hset->reverse, sizeof(char *) * capacity);
+  hset->array = calloc(capacity, sizeof(rhashset_item_t));
   hset->capacity = capacity;
   for (size_t i = 0; i < old_capacity; i++) {
     rhashset_item_t it = old_array[i];

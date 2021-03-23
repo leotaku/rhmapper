@@ -39,8 +39,7 @@ void tape_destroy(tape_t *tape) {
 
 void tape_grow(tape_t *tape, size_t capacity) {
   assert(capacity > tape->capacity);
-  tape->array =
-      (tape_item_t *)realloc(tape->array, sizeof(tape_item_t) * capacity);
+  tape->array = realloc(tape->array, sizeof(tape_item_t) * capacity);
   tape->capacity = capacity;
 }
 
