@@ -1,5 +1,5 @@
-#ifndef _RHASHSET_H_
-#define _RHASHSET_H_
+#ifndef _BBTEX_RHASHSET_H_
+#define _BBTEX_RHASHSET_H_
 
 #include <assert.h>
 #include <stdio.h>
