@@ -1,5 +1,8 @@
 #include "errno.h"
 #include "rhashset.c"
+#ifndef _BBTEX_CSV_H_
+#define _BBTEX_CSV_H_
+
 #include "rhashset.h"
 #include "tape.c"
 
@@ -131,3 +134,5 @@ void csv_parse(FILE *stream) {
   }
   csv_parse_records(tp, offset, buffer, stream);
 }
+
+#endif
