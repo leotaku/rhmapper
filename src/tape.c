@@ -4,6 +4,7 @@
 
 #define TAPE_BUFFER_DEFAULT_SIZE 65536
 #define TAPE_DEFAULT_SIZE 4096
+#define TAPE_GROW_FACTOR 4
 
 enum tape_key { k_emit = -1, k_update = -2 };
 typedef enum tape_key tape_key_t;
@@ -43,7 +44,7 @@ void tape_grow(tape_t *tape, size_t capacity) {
 
 void tape_put(tape_t *tape, tape_key_t key, size_t start, size_t end) {
   if (tape->size >= tape->capacity) {
-    tape_grow(tape, tape->capacity * 4);
+    tape_grow(tape, tape->capacity * TAPE_GROW_FACTOR);
   }
   tape->array[tape->size] = (tape_item_t){
       .key = key,
