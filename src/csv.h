@@ -1,10 +1,8 @@
-#include "errno.h"
-#include "rhashset.c"
 #ifndef _BBTEX_CSV_H_
 #define _BBTEX_CSV_H_
 
 #include "rhashset.h"
-#include "tape.c"
+#include "tape.h"
 
 enum csv_state {
   csv_unquoted,
