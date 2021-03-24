@@ -1,8 +1,6 @@
 #include <assert.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #define TAPE_BUFFER_DEFAULT_SIZE 65536
 #define TAPE_DEFAULT_SIZE 4096
