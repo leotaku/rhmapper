@@ -46,12 +46,11 @@ void tape_put(tape_t *tape, tape_key_t key, size_t start, size_t end) {
   if (tape->size >= tape->capacity) {
     tape_grow(tape, tape->capacity * TAPE_GROW_FACTOR);
   }
-  tape->array[tape->size] = (tape_item_t){
+  tape->array[tape->size++] = (tape_item_t){
       .key = key,
       .start = start,
       .end = end,
   };
-  tape->size++;
 }
 
 void tape_put_emit(tape_t *tape) { tape_put(tape, k_emit, 0, 0); }
