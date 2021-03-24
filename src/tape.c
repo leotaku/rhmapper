@@ -1,3 +1,6 @@
+#ifndef _BBTEX_TAPE_H_
+#define _BBTEX_TAPE_H_
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,3 +90,5 @@ size_t freadx_start(char *buffer, size_t count, size_t start, FILE *stream) {
     return freadx_keep(buffer, count, count - start, stream);
   }
 }
+
+#endif
