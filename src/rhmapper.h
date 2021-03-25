@@ -64,13 +64,12 @@ void rhmapper_destroy(rhmapper_t *rh) {
 }
 
 size_t
-rhmapper_internal_force_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
+rhmapper_internal_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
   size_t capacity = rh->capacity;
   for (;;) {
     rhmapper_kv_t stored = rh->array[index % capacity];
     if (stored.key.data == NULL) {
       rh->array[index % capacity] = kv;
-      rh->size++;
       return kv.value;
     } else if (kv.hash % capacity < stored.hash % capacity) {
       rhmapper_kv_t tmp = kv;
@@ -81,8 +80,7 @@ rhmapper_internal_force_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
   }
 }
 
-size_t rhmapper_internal_maybe_set(
-    rhmapper_t *rh, char *key, size_t size, size_t val) {
+size_t rhmapper_internal_put(rhmapper_t *rh, char *key, size_t size) {
   size_t hash = rhmapper_hash(key, size);
   size_t capacity = rh->capacity;
   size_t index = hash;
@@ -92,12 +90,12 @@ size_t rhmapper_internal_maybe_set(
       char *data = calloc(size, sizeof(char));
       memcpy(data, key, size);
       rhmapper_kv_t kv = {
-          .value = val,
+          .value = rh->size++,
           .key.data = data,
           .key.size = size,
           .hash = hash,
       };
-      return rhmapper_internal_force_set(rh, kv, index);
+      return rhmapper_internal_set(rh, kv, index);
     } else if (it.key.size == size && !memcmp(key, it.key.data, size)) {
       return it.value;
     } else {
@@ -112,11 +110,10 @@ void rhmapper_grow(rhmapper_t *rh, size_t capacity) {
   rhmapper_kv_t *old_array = rh->array;
   rh->array = calloc(capacity, sizeof(rhmapper_kv_t));
   rh->capacity = capacity;
-  rh->size = 0;
   for (size_t i = 0; i < old_capacity; i++) {
     rhmapper_kv_t it = old_array[i];
     if (it.key.data != NULL) {
-      rhmapper_internal_force_set(rh, it, it.hash);
+      rhmapper_internal_set(rh, it, it.hash);
     }
   }
   free(old_array);
@@ -126,7 +123,7 @@ size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
   if (rh->size > rh->capacity * RHMAPPER_GROW_RATIO) {
     rhmapper_grow(rh, rh->capacity * RHMAPPER_GROW_FACTOR);
   }
-  return rhmapper_internal_maybe_set(rh, key, size, rh->size);
+  return rhmapper_internal_put(rh, key, size);
 }
 
 size_t rhmapper_get(rhmapper_t *rh, char *key, size_t size) {
