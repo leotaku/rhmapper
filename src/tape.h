@@ -1,5 +1,5 @@
-#ifndef _BBTEX_TAPE_H_
-#define _BBTEX_TAPE_H_
+#ifndef BBTEX_TAPE_H
+#define BBTEX_TAPE_H
 
 #include <assert.h>
 #include <stdio.h>

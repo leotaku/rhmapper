@@ -1,5 +1,5 @@
-#ifndef _BBTEX_CSV_H_
-#define _BBTEX_CSV_H_
+#ifndef BBTEX_CSV_H
+#define BBTEX_CSV_H
 
 #include "rhashset.h"
 #include "tape.h"

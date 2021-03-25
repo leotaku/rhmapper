@@ -1,5 +1,5 @@
-#ifndef _BBTEX_RHMAPPER_H_
-#define _BBTEX_RHMAPPER_H_
+#ifndef BBTEX_RHMAPPER_H
+#define BBTEX_RHMAPPER_H
 
 #include <assert.h>
 #include <stdio.h>
