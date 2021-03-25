@@ -18,6 +18,12 @@ size_t rhmapper_hash(const void *data, size_t size) {
   return hash;
 }
 
+void *rhmapper_calloc(size_t n, size_t size) {
+  void *result = calloc(n, size);
+  assert(result);
+  return result;
+}
+
 typedef struct rhmapper rhmapper_t;
 typedef struct rhmapper_string rhmapper_string_t;
 typedef struct rhmapper_kv rhmapper_kv_t;
@@ -43,10 +49,10 @@ rhmapper_t *rhmapper_create(size_t capacity) {
   assert(capacity >= 1);
 
   rhmapper_t *rh;
-  rh = calloc(1, sizeof(rhmapper_t));
+  rh = rhmapper_calloc(1, sizeof(rhmapper_t));
   rh->size = 0;
   rh->capacity = capacity;
-  rh->array = calloc(capacity, sizeof(rhmapper_kv_t));
+  rh->array = rhmapper_calloc(capacity, sizeof(rhmapper_kv_t));
 
   return rh;
 }
@@ -87,7 +93,7 @@ size_t rhmapper_internal_put(rhmapper_t *rh, char *key, size_t size) {
   for (;;) {
     rhmapper_kv_t it = rh->array[index % capacity];
     if (it.key.data == NULL || hash % capacity < it.hash % capacity) {
-      char *data = calloc(size, sizeof(char));
+      char *data = rhmapper_calloc(size, sizeof(char));
       memcpy(data, key, size);
       rhmapper_kv_t kv = {
           .value = rh->size++,
@@ -110,7 +116,7 @@ void rhmapper_grow(rhmapper_t *rh, size_t capacity) {
   assert(capacity > rh->capacity);
   size_t old_capacity = rh->capacity;
   rhmapper_kv_t *old_array = rh->array;
-  rh->array = calloc(capacity, sizeof(rhmapper_kv_t));
+  rh->array = rhmapper_calloc(capacity, sizeof(rhmapper_kv_t));
   rh->capacity = capacity;
   for (size_t i = 0; i < old_capacity; i++) {
     rhmapper_kv_t it = old_array[i];
