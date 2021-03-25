@@ -96,7 +96,9 @@ size_t rhmapper_internal_put(rhmapper_t *rh, char *key, size_t size) {
           .hash = hash,
       };
       return rhmapper_internal_set(rh, kv, index);
-    } else if (it.key.size == size && !memcmp(key, it.key.data, size)) {
+    } else if (
+        it.hash == hash && it.key.size == size &&
+        !memcmp(key, it.key.data, size)) {
       return it.value;
     } else {
       index++;
@@ -136,7 +138,9 @@ size_t rhmapper_get(rhmapper_t *rh, char *key, size_t size) {
       return RHMAPPER_EMPTY_VALUE;
     } else if (hash % capacity < it.hash % capacity) {
       return RHMAPPER_EMPTY_VALUE;
-    } else if (it.key.size == size && !memcmp(key, it.key.data, size)) {
+    } else if (
+        it.hash == hash && it.key.size == size &&
+        !memcmp(key, it.key.data, size)) {
       return it.value;
     } else {
       index++;
