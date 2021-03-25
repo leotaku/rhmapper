@@ -37,7 +37,6 @@ struct rhmapper_kv {
   rhmapper_string_t key;
   size_t value;
   size_t hash;
-  size_t poverty;
 };
 
 rhmapper_t *rhmapper_create(size_t capacity) {
@@ -64,30 +63,32 @@ void rhmapper_destroy(rhmapper_t *rh) {
   free(rh);
 }
 
-size_t rhmapper_internal_force_set(rhmapper_t *rh, rhmapper_kv_t kv) {
+size_t
+rhmapper_internal_force_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
+  size_t capacity = rh->capacity;
   for (;;) {
-    size_t index = (kv.hash + kv.poverty) % rh->capacity;
-    rhmapper_kv_t stored = rh->array[index];
+    rhmapper_kv_t stored = rh->array[index % capacity];
     if (stored.key.data == NULL) {
-      rh->array[index] = kv;
+      rh->array[index % capacity] = kv;
       rh->size++;
       return kv.value;
-    } else if (kv.poverty > stored.poverty) {
+    } else if (kv.hash % capacity < stored.hash % capacity) {
       rhmapper_kv_t tmp = kv;
       kv = stored;
-      rh->array[index] = tmp;
+      rh->array[index % capacity] = tmp;
     }
-    kv.poverty++;
+    index++;
   }
 }
 
 size_t rhmapper_internal_maybe_set(
     rhmapper_t *rh, char *key, size_t size, size_t val) {
   size_t hash = rhmapper_hash(key, size);
-  size_t poverty = 0;
+  size_t capacity = rh->capacity;
+  size_t index = hash;
   for (;;) {
-    rhmapper_kv_t it = rh->array[(hash + poverty) % rh->capacity];
-    if (it.key.data == NULL || poverty > it.poverty) {
+    rhmapper_kv_t it = rh->array[index % capacity];
+    if (it.key.data == NULL || hash % capacity < it.hash % capacity) {
       char *data = calloc(size, sizeof(char));
       memcpy(data, key, size);
       rhmapper_kv_t kv = {
@@ -95,13 +96,12 @@ size_t rhmapper_internal_maybe_set(
           .key.data = data,
           .key.size = size,
           .hash = hash,
-          .poverty = poverty,
       };
-      return rhmapper_internal_force_set(rh, kv);
+      return rhmapper_internal_force_set(rh, kv, index);
     } else if (it.key.size == size && !memcmp(key, it.key.data, size)) {
       return it.value;
     } else {
-      poverty++;
+      index++;
     }
   }
 }
@@ -116,8 +116,7 @@ void rhmapper_grow(rhmapper_t *rh, size_t capacity) {
   for (size_t i = 0; i < old_capacity; i++) {
     rhmapper_kv_t it = old_array[i];
     if (it.key.data != NULL) {
-      it.poverty = 0;
-      rhmapper_internal_force_set(rh, it);
+      rhmapper_internal_force_set(rh, it, it.hash);
     }
   }
   free(old_array);
@@ -132,17 +131,18 @@ size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
 
 size_t rhmapper_get(rhmapper_t *rh, char *key, size_t size) {
   size_t hash = rhmapper_hash(key, size);
-  size_t poverty = 0;
+  size_t capacity = rh->capacity;
+  size_t index = hash;
   for (;;) {
-    rhmapper_kv_t it = rh->array[(hash + poverty) % rh->capacity];
+    rhmapper_kv_t it = rh->array[index % capacity];
     if (it.key.data == NULL) {
       return RHMAPPER_EMPTY_VALUE;
-    } else if (poverty > it.poverty) {
+    } else if (hash % capacity < it.hash % capacity) {
       return RHMAPPER_EMPTY_VALUE;
     } else if (it.key.size == size && !memcmp(key, it.key.data, size)) {
       return it.value;
     } else {
-      poverty++;
+      index++;
     }
   }
 }
