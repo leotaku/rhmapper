@@ -19,19 +19,24 @@ size_t rhashset_hash(const void *data, size_t size) {
 }
 
 typedef struct rhashset rhashset_t;
-typedef struct rhashset_item rhashset_item_t;
+typedef struct rhashset_string rhashset_string_t;
+typedef struct rhashset_kv rhashset_kv_t;
 
 struct rhashset {
   size_t size;
   size_t capacity;
-  rhashset_item_t *array;
-  const char **reverse;
+  rhashset_string_t *reverse;
+  rhashset_kv_t *array;
 };
 
-struct rhashset_item {
+struct rhashset_string {
+  char *data;
+  size_t size;
+};
+
+struct rhashset_kv {
+  rhashset_string_t key;
   size_t value;
-  size_t key_size;
-  char *key;
 };
 
 rhashset_t *rhashset_create(size_t capacity) {
@@ -41,7 +46,7 @@ rhashset_t *rhashset_create(size_t capacity) {
   hset = calloc(1, sizeof(rhashset_t));
   hset->size = 0;
   hset->capacity = capacity;
-  hset->array = calloc(capacity, sizeof(rhashset_item_t));
+  hset->array = calloc(capacity, sizeof(rhashset_kv_t));
   hset->reverse = calloc(capacity, sizeof(char *));
 
   return hset;
@@ -50,9 +55,9 @@ rhashset_t *rhashset_create(size_t capacity) {
 void rhashset_destroy(rhashset_t *hset) {
   const size_t size = hset->capacity;
   for (size_t i = 0; i < size; i++) {
-    rhashset_item_t it = hset->array[i];
-    if (it.key != NULL) {
-      free(it.key);
+    rhashset_kv_t it = hset->array[i];
+    if (it.key.data != NULL) {
+      free(it.key.data);
     }
   }
   free(hset->reverse);
@@ -60,22 +65,23 @@ void rhashset_destroy(rhashset_t *hset) {
   free(hset);
 }
 
-size_t rhashset_internal_set(
-    rhashset_t *hset, const char *key, size_t size, size_t val) {
+size_t
+rhashset_internal_set(rhashset_t *hset, char *key, size_t size, size_t val) {
   size_t index = rhashset_hash(key, size) % hset->capacity;
   for (;;) {
-    rhashset_item_t it = hset->array[index];
-    if (it.key == NULL) {
+    rhashset_kv_t it = hset->array[index];
+    if (it.key.data == NULL) {
       char *key_ptr = calloc(size, sizeof(char));
       memcpy(key_ptr, key, size);
-      hset->array[index] = (rhashset_item_t){
+      rhashset_kv_t kv = {
           .value = val,
-          .key_size = size,
-          .key = key_ptr,
+          .key.data = key_ptr,
+          .key.size = size,
       };
-      hset->reverse[val] = key_ptr;
+      hset->reverse[val] = kv.key;
+      hset->array[index] = kv;
       return val;
-    } else if (it.key_size == size && !memcmp(key, it.key, size)) {
+    } else if (it.key.size == size && !memcmp(key, it.key.data, size)) {
       return it.value;
     } else {
       index = (index + 1) % hset->capacity;
@@ -86,33 +92,33 @@ size_t rhashset_internal_set(
 void rhashset_grow(rhashset_t *hset, size_t capacity) {
   assert(capacity > hset->capacity);
   size_t old_capacity = hset->capacity;
-  rhashset_item_t *old_array = hset->array;
+  rhashset_kv_t *old_array = hset->array;
   hset->reverse = realloc(hset->reverse, sizeof(char *) * capacity);
-  hset->array = calloc(capacity, sizeof(rhashset_item_t));
+  hset->array = calloc(capacity, sizeof(rhashset_kv_t));
   hset->capacity = capacity;
   for (size_t i = 0; i < old_capacity; i++) {
-    rhashset_item_t it = old_array[i];
-    if (it.key != NULL) {
-      rhashset_internal_set(hset, it.key, it.key_size, it.value);
-      free(it.key);
+    rhashset_kv_t it = old_array[i];
+    if (it.key.data != NULL) {
+      rhashset_internal_set(hset, it.key.data, it.key.size, it.value);
+      free(it.key.data);
     }
   }
 }
 
-size_t rhashset_put(rhashset_t *hset, const char *key, size_t size) {
+size_t rhashset_put(rhashset_t *hset, char *key, size_t size) {
   if (hset->size > hset->capacity * RHASHSET_GROW_RATIO) {
     rhashset_grow(hset, hset->capacity * RHASHSET_GROW_FACTOR);
   }
   return rhashset_internal_set(hset, key, size, hset->size++);
 }
 
-size_t rhashset_get(rhashset_t *hset, const char *key, size_t size) {
+size_t rhashset_get(rhashset_t *hset, char *key, size_t size) {
   size_t index = rhashset_hash(key, size) % hset->capacity;
   for (;;) {
-    rhashset_item_t it = hset->array[index];
-    if (it.key == NULL) {
+    rhashset_kv_t it = hset->array[index];
+    if (it.key.data == NULL) {
       return RHASHSET_EMPTY_VALUE;
-    } else if (it.key_size == size && !memcmp(key, it.key, size)) {
+    } else if (it.key.size == size && !memcmp(key, it.key.data, size)) {
       return it.value;
     } else {
       index = (index + 1) % hset->capacity;
@@ -120,9 +126,12 @@ size_t rhashset_get(rhashset_t *hset, const char *key, size_t size) {
   }
 }
 
-const char *rhashset_rev(rhashset_t *hset, size_t key) {
+const rhashset_string_t rhashset_rev(rhashset_t *hset, size_t key) {
   if (key == RHASHSET_EMPTY_VALUE || key >= hset->size) {
-    return NULL;
+    return (rhashset_string_t){
+        .data = NULL,
+        .size = 0,
+    };
   } else {
     return hset->reverse[key];
   }
