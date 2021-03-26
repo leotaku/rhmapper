@@ -13,6 +13,13 @@
 #define RHMAPPER_GROW_RATIO 8 / 10
 #define RHMAPPER_EMPTY_VALUE -1
 
+#define RHMAPPER_MEASURE(index, hash, capacity) \
+  ((capacity + index % capacity - hash % capacity) % capacity)
+#define RHMAPPER_RANK(new, old)             \
+  (RHMAPPER_MEASURE(index, new, capacity) > \
+   RHMAPPER_MEASURE(index, old, capacity))
+#define RHMAPPER_NEXT(index) index + 1
+
 size_t rhmapper_hash(const void *data, size_t size) {
   XXH32_hash_t hash = XXH32(data, size, 0);
   return hash;
@@ -77,12 +84,12 @@ rhmapper_internal_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
     if (stored.key.data == NULL) {
       rh->array[index % capacity] = kv;
       return kv.value;
-    } else if (kv.hash % capacity < stored.hash % capacity) {
+    } else if (RHMAPPER_RANK(kv.hash, stored.hash)) {
       rhmapper_kv_t tmp = kv;
       kv = stored;
       rh->array[index % capacity] = tmp;
     }
-    index++;
+    index = RHMAPPER_NEXT(index);
   }
 }
 
@@ -92,7 +99,7 @@ size_t rhmapper_internal_put(rhmapper_t *rh, char *key, size_t size) {
   size_t index = hash;
   for (;;) {
     rhmapper_kv_t it = rh->array[index % capacity];
-    if (it.key.data == NULL || hash % capacity < it.hash % capacity) {
+    if (it.key.data == NULL || RHMAPPER_RANK(hash, it.hash)) {
       char *data = rhmapper_calloc(size, sizeof(char));
       memcpy(data, key, size);
       rhmapper_kv_t kv = {
@@ -107,7 +114,7 @@ size_t rhmapper_internal_put(rhmapper_t *rh, char *key, size_t size) {
         !memcmp(key, it.key.data, size)) {
       return it.value;
     } else {
-      index++;
+      index = RHMAPPER_NEXT(index);
     }
   }
 }
@@ -142,14 +149,14 @@ size_t rhmapper_get(rhmapper_t *rh, char *key, size_t size) {
     rhmapper_kv_t it = rh->array[index % capacity];
     if (it.key.data == NULL) {
       return RHMAPPER_EMPTY_VALUE;
-    } else if (hash % capacity < it.hash % capacity) {
+    } else if (RHMAPPER_RANK(hash, it.hash)) {
       return RHMAPPER_EMPTY_VALUE;
     } else if (
         it.hash == hash && it.key.size == size &&
         !memcmp(key, it.key.data, size)) {
       return it.value;
     } else {
-      index++;
+      index = RHMAPPER_NEXT(index);
     }
   }
 }
