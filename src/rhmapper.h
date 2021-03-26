@@ -99,7 +99,7 @@ size_t rhmapper_internal_put(rhmapper_t *rh, char *key, size_t size) {
   size_t index = hash;
   for (;;) {
     rhmapper_kv_t it = rh->array[index % capacity];
-    if (it.key.data == NULL || RHMAPPER_RANK(hash, it.hash)) {
+    if (it.key.data == NULL) {
       char *data = rhmapper_calloc(size, sizeof(char));
       memcpy(data, key, size);
       rhmapper_kv_t kv = {
@@ -108,7 +108,7 @@ size_t rhmapper_internal_put(rhmapper_t *rh, char *key, size_t size) {
           .key.size = size,
           .hash = hash,
       };
-      return rhmapper_internal_set(rh, kv, index);
+      return rhmapper_internal_set(rh, kv, kv.hash);
     } else if (
         it.hash == hash && it.key.size == size &&
         !memcmp(key, it.key.data, size)) {
