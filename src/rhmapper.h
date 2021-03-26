@@ -93,6 +93,21 @@ rhmapper_internal_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
   }
 }
 
+void rhmapper_grow(rhmapper_t *rh, size_t capacity) {
+  assert(capacity > rh->capacity);
+  size_t old_capacity = rh->capacity;
+  rhmapper_kv_t *old_array = rh->array;
+  rh->array = rhmapper_calloc(capacity, sizeof(rhmapper_kv_t));
+  rh->capacity = capacity;
+  for (size_t i = 0; i < old_capacity; i++) {
+    rhmapper_kv_t it = old_array[i];
+    if (it.key.data != NULL) {
+      rhmapper_internal_set(rh, it, it.hash);
+    }
+  }
+  free(old_array);
+}
+
 size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
   size_t hash = rhmapper_hash(key, size);
   size_t capacity = rh->capacity;
@@ -120,21 +135,6 @@ size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
       index = RHMAPPER_NEXT(index);
     }
   }
-}
-
-void rhmapper_grow(rhmapper_t *rh, size_t capacity) {
-  assert(capacity > rh->capacity);
-  size_t old_capacity = rh->capacity;
-  rhmapper_kv_t *old_array = rh->array;
-  rh->array = rhmapper_calloc(capacity, sizeof(rhmapper_kv_t));
-  rh->capacity = capacity;
-  for (size_t i = 0; i < old_capacity; i++) {
-    rhmapper_kv_t it = old_array[i];
-    if (it.key.data != NULL) {
-      rhmapper_internal_set(rh, it, it.hash);
-    }
-  }
-  free(old_array);
 }
 
 size_t rhmapper_get(rhmapper_t *rh, char *key, size_t size) {
