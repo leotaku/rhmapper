@@ -93,7 +93,7 @@ rhmapper_internal_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
   }
 }
 
-size_t rhmapper_internal_put(rhmapper_t *rh, char *key, size_t size) {
+size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
   size_t hash = rhmapper_hash(key, size);
   size_t capacity = rh->capacity;
   size_t index = hash;
@@ -108,6 +108,9 @@ size_t rhmapper_internal_put(rhmapper_t *rh, char *key, size_t size) {
           .key.size = size,
           .hash = hash,
       };
+      if (rh->size > capacity * RHMAPPER_GROW_RATIO) {
+        rhmapper_grow(rh, rh->capacity * RHMAPPER_GROW_FACTOR);
+      }
       return rhmapper_internal_set(rh, kv, kv.hash);
     } else if (
         it.hash == hash && it.key.size == size &&
@@ -132,13 +135,6 @@ void rhmapper_grow(rhmapper_t *rh, size_t capacity) {
     }
   }
   free(old_array);
-}
-
-size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
-  if (rh->size > rh->capacity * RHMAPPER_GROW_RATIO) {
-    rhmapper_grow(rh, rh->capacity * RHMAPPER_GROW_FACTOR);
-  }
-  return rhmapper_internal_put(rh, key, size);
 }
 
 size_t rhmapper_get(rhmapper_t *rh, char *key, size_t size) {
