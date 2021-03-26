@@ -94,7 +94,7 @@ rhmapper_internal_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
 }
 
 void rhmapper_grow(rhmapper_t *rh, size_t capacity) {
-  assert(capacity > rh->capacity);
+  assert(capacity >= rh->size);
   size_t old_capacity = rh->capacity;
   rhmapper_kv_t *old_array = rh->array;
   rh->array = rhmapper_calloc(capacity, sizeof(rhmapper_kv_t));
