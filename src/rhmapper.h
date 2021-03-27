@@ -13,17 +13,13 @@
 #define RHMAPPER_GROW_RATIO 8 / 10
 #define RHMAPPER_EMPTY_VALUE -1
 
+#define RHMAPPER_HASH(data, size) XXH64(data, size, 0)
 #define RHMAPPER_MEASURE(index, hash, capacity) \
   ((capacity + index % capacity - hash % capacity) % capacity)
 #define RHMAPPER_RANK(new, old)             \
   (RHMAPPER_MEASURE(index, new, capacity) > \
    RHMAPPER_MEASURE(index, old, capacity))
 #define RHMAPPER_NEXT(index) index + 1
-
-size_t rhmapper_hash(const void *data, size_t size) {
-  XXH32_hash_t hash = XXH32(data, size, 0);
-  return hash;
-}
 
 void *rhmapper_calloc(size_t n, size_t size) {
   void *result = calloc(n, size);
@@ -109,7 +105,7 @@ void rhmapper_grow(rhmapper_t *rh, size_t capacity) {
 }
 
 size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
-  size_t hash = rhmapper_hash(key, size);
+  size_t hash = RHMAPPER_HASH(key, size);
   size_t capacity = rh->capacity;
   size_t index = hash;
   for (;;) {
@@ -138,7 +134,7 @@ size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
 }
 
 size_t rhmapper_get(rhmapper_t *rh, char *key, size_t size) {
-  size_t hash = rhmapper_hash(key, size);
+  size_t hash = RHMAPPER_HASH(key, size);
   size_t capacity = rh->capacity;
   size_t index = hash;
   for (;;) {
