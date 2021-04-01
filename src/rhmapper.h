@@ -28,7 +28,7 @@ void *rhmapper_calloc(size_t n, size_t size) {
 }
 
 typedef struct rhmapper rhmapper_t;
-typedef struct rhmapper_string rhmapper_string_t;
+typedef struct rhmapper_kv_remote rhmapper_kv_remote_t;
 typedef struct rhmapper_kv rhmapper_kv_t;
 
 struct rhmapper {
@@ -37,15 +37,15 @@ struct rhmapper {
   rhmapper_kv_t *array;
 };
 
-struct rhmapper_string {
-  char *data;
-  size_t size;
+struct rhmapper_kv_remote {
+  size_t value;
+  size_t key_size;
+  char key_data[];
 };
 
 struct rhmapper_kv {
-  rhmapper_string_t key;
-  size_t value;
   size_t hash;
+  rhmapper_kv_remote_t *remote;
 };
 
 rhmapper_t *rhmapper_create(size_t capacity) {
@@ -64,8 +64,8 @@ void rhmapper_destroy(rhmapper_t *rh) {
   const size_t size = rh->capacity;
   for (size_t i = 0; i < size; i++) {
     rhmapper_kv_t it = rh->array[i];
-    if (it.key.data != NULL) {
-      free(it.key.data);
+    if (it.remote != NULL) {
+      free(it.remote);
     }
   }
   free(rh->array);
@@ -77,9 +77,9 @@ rhmapper_internal_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
   size_t capacity = rh->capacity;
   for (;;) {
     rhmapper_kv_t stored = rh->array[index % capacity];
-    if (stored.key.data == NULL) {
+    if (stored.remote == NULL) {
       rh->array[index % capacity] = kv;
-      return kv.value;
+      return kv.remote->value;
     } else if (RHMAPPER_RANK(kv.hash, stored.hash)) {
       rhmapper_kv_t tmp = kv;
       kv = stored;
@@ -95,9 +95,9 @@ void rhmapper_grow(rhmapper_t *rh, size_t capacity) {
   rhmapper_kv_t *old_array = rh->array;
   rh->array = rhmapper_calloc(capacity, sizeof(rhmapper_kv_t));
   rh->capacity = capacity;
-  for (size_t i = 0; i < old_capacity; i++) {
-    rhmapper_kv_t it = old_array[i];
-    if (it.key.data != NULL) {
+  for (size_t i = old_capacity; i > 0; i--) {
+    rhmapper_kv_t it = old_array[i - 1];
+    if (it.remote != NULL) {
       rhmapper_internal_set(rh, it, it.hash);
     }
   }
@@ -110,13 +110,14 @@ size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
   size_t index = hash;
   for (;;) {
     rhmapper_kv_t it = rh->array[index % capacity];
-    if (it.key.data == NULL) {
-      char *data = rhmapper_calloc(size, sizeof(char));
-      memcpy(data, key, size);
+    if (it.remote == NULL) {
+      rhmapper_kv_remote_t *remote =
+          rhmapper_calloc(1, sizeof(size_t) * 2 + sizeof(char) * size);
+      remote->value = rh->size++;
+      remote->key_size = size;
+      memcpy(remote->key_data, key, size);
       rhmapper_kv_t kv = {
-          .value = rh->size++,
-          .key.data = data,
-          .key.size = size,
+          .remote = remote,
           .hash = hash,
       };
       if (rh->size > capacity * RHMAPPER_GROW_RATIO) {
@@ -124,9 +125,9 @@ size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
       }
       return rhmapper_internal_set(rh, kv, kv.hash);
     } else if (
-        it.hash == hash && it.key.size == size &&
-        !memcmp(key, it.key.data, size)) {
-      return it.value;
+        it.hash == hash && it.remote->key_size == size &&
+        !memcmp(key, it.remote->key_data, size)) {
+      return it.remote->value;
     } else {
       index = RHMAPPER_NEXT(index);
     }
@@ -139,14 +140,14 @@ size_t rhmapper_get(rhmapper_t *rh, char *key, size_t size) {
   size_t index = hash;
   for (;;) {
     rhmapper_kv_t it = rh->array[index % capacity];
-    if (it.key.data == NULL) {
+    if (it.remote == NULL) {
       return RHMAPPER_EMPTY_VALUE;
     } else if (RHMAPPER_RANK(hash, it.hash)) {
       return RHMAPPER_EMPTY_VALUE;
     } else if (
-        it.hash == hash && it.key.size == size &&
-        !memcmp(key, it.key.data, size)) {
-      return it.value;
+        it.hash == hash && it.remote->key_size == size &&
+        !memcmp(key, it.remote->key_data, size)) {
+      return it.remote->value;
     } else {
       index = RHMAPPER_NEXT(index);
     }
