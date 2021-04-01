@@ -72,14 +72,13 @@ void rhmapper_destroy(rhmapper_t *rh) {
   free(rh);
 }
 
-size_t
-rhmapper_internal_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
+void rhmapper_internal_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
   size_t capacity = rh->capacity;
   for (;;) {
     rhmapper_kv_t stored = rh->array[index % capacity];
     if (stored.remote == NULL) {
       rh->array[index % capacity] = kv;
-      return kv.remote->value;
+      return;
     } else if (RHMAPPER_RANK(kv.hash, stored.hash)) {
       rhmapper_kv_t tmp = kv;
       kv = stored;
@@ -123,7 +122,8 @@ size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
       if (rh->size > capacity * RHMAPPER_GROW_RATIO) {
         rhmapper_grow(rh, rh->capacity * RHMAPPER_GROW_FACTOR);
       }
-      return rhmapper_internal_set(rh, kv, kv.hash);
+      rhmapper_internal_set(rh, kv, kv.hash);
+      return kv.remote->value;
     } else if (
         it.hash == hash && it.remote->key_size == size &&
         !memcmp(key, it.remote->key_data, size)) {
