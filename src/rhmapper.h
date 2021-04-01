@@ -28,6 +28,7 @@ void *rhmapper_calloc(size_t n, size_t size) {
 }
 
 typedef struct rhmapper rhmapper_t;
+typedef struct rhmapper_string rhmapper_string_t;
 typedef struct rhmapper_kv_remote rhmapper_kv_remote_t;
 typedef struct rhmapper_kv rhmapper_kv_t;
 
@@ -37,10 +38,14 @@ struct rhmapper {
   rhmapper_kv_t *array;
 };
 
+struct rhmapper_string {
+  size_t size;
+  char data[];
+};
+
 struct rhmapper_kv_remote {
   size_t value;
-  size_t key_size;
-  char key_data[];
+  rhmapper_string_t key;
 };
 
 struct rhmapper_kv {
@@ -113,8 +118,8 @@ size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
       rhmapper_kv_remote_t *remote =
           rhmapper_calloc(1, sizeof(size_t) * 2 + sizeof(char) * size);
       remote->value = rh->size++;
-      remote->key_size = size;
-      memcpy(remote->key_data, key, size);
+      remote->key.size = size;
+      memcpy(remote->key.data, key, size);
       rhmapper_kv_t kv = {
           .remote = remote,
           .hash = hash,
@@ -125,8 +130,8 @@ size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
       rhmapper_internal_set(rh, kv, kv.hash);
       return kv.remote->value;
     } else if (
-        it.hash == hash && it.remote->key_size == size &&
-        !memcmp(key, it.remote->key_data, size)) {
+        it.hash == hash && it.remote->key.size == size &&
+        !memcmp(key, it.remote->key.data, size)) {
       return it.remote->value;
     } else {
       index = RHMAPPER_NEXT(index);
@@ -145,8 +150,8 @@ size_t rhmapper_get(rhmapper_t *rh, char *key, size_t size) {
     } else if (RHMAPPER_RANK(hash, it.hash)) {
       return RHMAPPER_EMPTY_VALUE;
     } else if (
-        it.hash == hash && it.remote->key_size == size &&
-        !memcmp(key, it.remote->key_data, size)) {
+        it.hash == hash && it.remote->key.size == size &&
+        !memcmp(key, it.remote->key.data, size)) {
       return it.remote->value;
     } else {
       index = RHMAPPER_NEXT(index);
