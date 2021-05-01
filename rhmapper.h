@@ -40,7 +40,7 @@ struct rhmapper {
 
 struct rhmapper_string {
   size_t size;
-  char data[];
+  char *data;
 };
 
 struct rhmapper_kv_remote {
@@ -70,6 +70,7 @@ void rhmapper_destroy(rhmapper_t *rh) {
   for (size_t i = 0; i < size; i++) {
     rhmapper_kv_t it = rh->array[i];
     if (it.remote != NULL) {
+      free(it.remote->key.data);
       free(it.remote);
     }
   }
@@ -115,11 +116,13 @@ size_t rhmapper_put(rhmapper_t *rh, char *key, size_t size) {
   for (;;) {
     rhmapper_kv_t it = rh->array[index % capacity];
     if (it.remote == NULL) {
+      char *data = rhmapper_calloc(size, sizeof(char));
+      memcpy(data, key, size);
       rhmapper_kv_remote_t *remote =
-          rhmapper_calloc(1, sizeof(size_t) * 2 + sizeof(char) * size);
+          rhmapper_calloc(1, sizeof(rhmapper_kv_remote_t));
       remote->value = rh->size++;
+      remote->key.data = data;
       remote->key.size = size;
-      memcpy(remote->key.data, key, size);
       rhmapper_kv_t kv = {
           .remote = remote,
           .hash = hash,
