@@ -36,6 +36,9 @@ struct rhmapper {
   size_t size;
   size_t capacity;
   rhmapper_kv_t *array;
+#ifdef RHMAPPER_REVERSE
+  rhmapper_string_t *reverse;
+#endif
 };
 
 struct rhmapper_string {
@@ -61,6 +64,9 @@ rhmapper_t *rhmapper_create(size_t capacity) {
   rh->size = 0;
   rh->capacity = capacity;
   rh->array = rhmapper_calloc(capacity, sizeof(rhmapper_kv_t));
+#ifdef RHMAPPER_REVERSE
+  rh->reverse = rhmapper_calloc(capacity, sizeof(rhmapper_kv_t));
+#endif
 
   return rh;
 }
@@ -75,11 +81,17 @@ void rhmapper_destroy(rhmapper_t *rh) {
     }
   }
   free(rh->array);
+#ifdef RHMAPPER_REVERSE
+  free(rh->reverse);
+#endif
   free(rh);
 }
 
 void rhmapper_internal_set(rhmapper_t *rh, rhmapper_kv_t kv, size_t index) {
   size_t capacity = rh->capacity;
+#ifdef RHMAPPER_REVERSE
+  rh->reverse[kv.remote->value] = kv.remote->key;
+#endif
   for (;;) {
     rhmapper_kv_t stored = rh->array[index % capacity];
     if (stored.remote == NULL) {
@@ -98,6 +110,10 @@ void rhmapper_grow(rhmapper_t *rh, size_t capacity) {
   assert(capacity >= rh->size);
   size_t old_capacity = rh->capacity;
   rhmapper_kv_t *old_array = rh->array;
+#ifdef RHMAPPER_REVERSE
+  free(rh->reverse);
+  rh->reverse = rhmapper_calloc(capacity, sizeof(rhmapper_kv_t));
+#endif
   rh->array = rhmapper_calloc(capacity, sizeof(rhmapper_kv_t));
   rh->capacity = capacity;
   for (size_t i = old_capacity; i > 0; i--) {
@@ -161,5 +177,11 @@ size_t rhmapper_get(rhmapper_t *rh, char *key, size_t size) {
     }
   }
 }
+
+#ifdef RHMAPPER_REVERSE
+rhmapper_string_t rhmapper_rev(rhmapper_t *rh, size_t index) {
+  return rh->reverse[index];
+}
+#endif
 
 #endif
